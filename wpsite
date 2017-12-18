@@ -1,0 +1,85 @@
+#!/bin/bash
+### Set Language
+TEXTDOMAIN=wpsite
+
+### Set default parameters
+domain=$1
+doRemove=$2
+
+source serverinfo
+
+# Check first parameter : Domain
+while [ "$domain" == "" ]
+do
+    echo -e $"Please provide wp site servername. e.g. cocacola, youtube, ..."
+    read domain
+done
+
+# Check  second parameter create | remove
+while [ "$doRemove" == "" ]
+do
+    echo -e $"Please provide second parameter  (create or delete)"
+    read doRemove
+done
+
+# Get secret , todo: Generate!
+secExt=$(date +'%Y')
+secret=$(openssl rand -base64 10)
+
+projectDirRel=$domain
+#projectUser=${domain//./}
+
+# If the domain is myproject.example.com , use only myproject from that, untill first dot.
+projectUser="${domain%%.*}"
+echo "Project user is $projectUser" 
+
+if [ -d $userDir$projectDirRel ]; then
+    echo "Changing dir into : $userDir$projectDirRel" > $logFileWP
+else
+    echo "Directory $userDir$projectDirRel does not exist!" > $logFileWP
+    #exit;
+fi
+
+cd $userDir$projectDirRel
+
+if [ "$doRemove" == "delete" ]
+then
+        virtualhost delete "$domain"
+	userdel $projectUser
+	mysql -u root -p$dbpwd -e "DROP DATABASE IF EXISTS $projectUser; DROP USER '$projectUser'@'localhost'; FLUSH PRIVILEGES;"
+else
+        virtualhost create "$domain"
+        cd $userDir$projectDirRel
+	useradd -d $userDir$projectDirRel -p$secret $projectUser
+	mysql -u root -p$dbpwd -e "CREATE DATABASE $projectUser CHARACTER SET utf8; CREATE USER '$projectUser'@'localhost' IDENTIFIED BY '$secret'; GRANT ALL PRIVILEGES ON '$projectUser' . * TO '$projectUser'@'localhost'; FLUSH PRIVILEGES;"
+	wget http://wordpress.org/latest.zip
+	unzip latest.zip
+	mv ./wordpress/* ./ -f
+	rm wordpress -rf
+	cp wp-config-sample.php wp-config.php
+	sed -i 's/database_name_here/'$projectUser'/g' wp-config.php
+	sed -i 's/username_here/'$projectUser'/g' wp-config.php
+	sed -i 's/password_here/'$secret'/g' wp-config.php
+	chown -R www-data.www-data . 
+	rm latest.zip
+        curl "http://$domain/wp-admin/install.php?step=2" \
+  --data-urlencode "weblog_title=$domain"\
+  --data-urlencode "user_name=$adminUsername" \
+  --data-urlencode "admin_email=$adminEmail" \
+  --data-urlencode "admin_password=$secret" \
+  --data-urlencode "admin_password2=$secret" \
+  --data-urlencode "pw_weak=1"
+fi
+
+echo "URL: "$domain" Username:"$projectUser", Password:"$secret | mail -s "WP Site Generated - "$domain glugox@gmail.com
+
+
+
+
+
+
+
+
+
+
+

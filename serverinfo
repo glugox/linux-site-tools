@@ -1,0 +1,10 @@
+email='webmaster@localhost'
+sitesEnable='/etc/apache2/sites-enabled/'
+sitesAvailable='/etc/apache2/sites-available/'
+userDir='/var/www/'
+dbpwd='YOUR PASSWORD HERE'
+adminEmail='glugox@gmail.com'
+adminUsername='admin'
+logFileVH=/var/log/virtualhost/log.txt
+logFileWP=/var/log/wpsite/log.txt
+
